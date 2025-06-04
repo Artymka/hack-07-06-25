@@ -2,3 +2,4 @@ sqlalchemy
 pandas
 fastparquet
 psycopg2-binary
+openpyxl
