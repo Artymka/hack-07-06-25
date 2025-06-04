@@ -1,3 +1,2 @@
-*.parquet
 dataset/run.bat
 .env
