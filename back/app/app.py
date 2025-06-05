@@ -1,12 +1,25 @@
-from fastapi import FastAPI, Request, Depends, HTTPException
-# from fastapi.responses import RedirectResponse, HTMLResponse
-# from fastapi.security import OAuth2AuthorizationCodeBearer
-# from jose import jwt
-# from httpx import AsyncClient
-# import secrets
+from fastapi import FastAPI, Request, Depends, HTTPException, Cookie, Response
+from fastapi.responses import StreamingResponse
+from asyncio import sleep as asleep
+from app.models import Question
+from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.security import OAuth2AuthorizationCodeBearer
+from httpx import AsyncClient
+import secrets
+from os import environ
+import jwt
+from datetime import datetime, timedelta, timezone
+
 
 app = FastAPI()
+# Для защиты от CSRF
+sessions = {}
 
+
+async def fake_model_answers():
+    for i in range(10):
+        await asleep(1)
+        yield b"lorem ipsum dolor sit amet "
 
 @app.head("/")
 @app.get("/")
@@ -16,20 +29,25 @@ async def index():
 @app.get("/test")
 async def test():
     return {"message": "test"}
-'''
-# Конфигурация Google OAuth
-GOOGLE_CLIENT_ID = "ваш_client_id"
-GOOGLE_CLIENT_SECRET = "ваш_client_secret"
-GOOGLE_REDIRECT_URI = "http://localhost:8000/auth/google/callback"
-GOOGLE_AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-GOOGLE_USER_INFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 
-# Для защиты от CSRF
-sessions = {}
+@app.post("/api/quest")
+async def question(q: Question):
+    return StreamingResponse(fake_model_answers())
+
+
+# Конфигурация Google OAuth
+GOOGLE_CLIENT_ID = environ["GOOGLE_CLIENT_ID"]
+GOOGLE_CLIENT_SECRET = environ["GOOGLE_CLIENT_SECRET"]
+GOOGLE_REDIRECT_URI = environ["GOOGLE_REDIRECT_URI"]
+GOOGLE_AUTHORIZATION_URL = environ["GOOGLE_AUTHORIZATION_URL"]
+GOOGLE_TOKEN_URL = environ["GOOGLE_TOKEN_URL"]
+GOOGLE_USER_INFO_URL = environ["GOOGLE_USER_INFO_URL"]
+SECRET_KEY = environ["SECRET_KEY"]
+ALGORITHM = "HS256"
 
 @app.get("/login/google")
 async def login_google(request: Request):
+    """Редиректит на страницу google для выбора пользователя."""
     # Генерируем случайный state (защита от CSRF)
     state = secrets.token_urlsafe(16)
     sessions[state] = True
@@ -39,14 +57,15 @@ async def login_google(request: Request):
         f"{GOOGLE_AUTHORIZATION_URL}?"
         f"client_id={GOOGLE_CLIENT_ID}&"
         f"response_type=code&"
-        f"scope=openid%20email%20profile&"
+        f"scope=email%20profile&"
         f"redirect_uri={GOOGLE_REDIRECT_URI}&"
         f"state={state}"
     )
     return RedirectResponse(auth_url)
 
 @app.get("/auth/google/callback")
-async def auth_google_callback(code: str, state: str):
+async def auth_google_callback(code: str, state: str, response: Response):
+    """Получает данные пользователя по коду, который вернул google, устанавливает jwt."""
     # Проверяем state (CSRF-защита)
     if state not in sessions:
         raise HTTPException(status_code=400, detail="Invalid state")
@@ -77,23 +96,37 @@ async def auth_google_callback(code: str, state: str):
         )
 
     user_data = user_info.json()
+
+    token_data = {
+        "sub": user_data["email"],  # Уникальный идентификатор
+        "name": user_data.get("name"),
+        "exp": datetime.now(timezone.utc) + timedelta(hours=1),  # Срок действия
+    }
+    token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
+
+    # Устанавливаем токен в куки (HTTP-only для защиты от XSS)
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        max_age=3600,  # 1 час
+        secure=True,    # Только HTTPS (в продакшене)
+        samesite="lax",
+    )
+
     return {
         "email": user_data["email"],
-        "name": user_data.get("name"),
-        "picture": user_data.get("picture"),
+        "name": user_data["name"],
+        "picture": user_data["picture"],
     }
 
-@app.get("/")
-async def home():
-    return HTMLResponse("""
-        <html>
-            <body>
-                <a href="/login/google">Login with Google</a>
-            </body>
-        </html>
-    """)
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-    '''
+async def get_current_user(access_token: str = Cookie(None)):
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Не авторизован")
+    try:
+        payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Токен истек")
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Неверный токен")

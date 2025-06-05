@@ -1,5 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
-class Request(BaseModel):
+class Question(BaseModel):
     text: str
