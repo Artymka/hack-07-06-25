@@ -8,10 +8,14 @@ from fastapi import FastAPI, Request, Depends, HTTPException
 app = FastAPI()
 
 
+@app.head("/")
 @app.get("/")
 async def index():
     return {"message": "Hello, world!"}
 
+@app.get("/test")
+async def test():
+    return {"message": "test"}
 '''
 # Конфигурация Google OAuth
 GOOGLE_CLIENT_ID = "ваш_client_id"
