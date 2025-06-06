@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, Cookie, Response
 from fastapi.responses import StreamingResponse
 from asyncio import sleep as asleep
-from app.models import Question
+# from app.models import Question
 # from fastapi.responses import RedirectResponse, HTMLResponse
 # from fastapi.security import OAuth2AuthorizationCodeBearer
 # from httpx import AsyncClient
@@ -34,7 +34,7 @@ async def test():
     return {"message": "test"}
 
 @app.post("/api/quest")
-async def question(q: Question):
+async def question(text: str):
     return StreamingResponse(fake_model_answers())
 
 '''
