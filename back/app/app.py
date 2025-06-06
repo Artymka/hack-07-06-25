@@ -2,13 +2,16 @@ from fastapi import FastAPI, Request, Depends, HTTPException, Cookie, Response
 from fastapi.responses import StreamingResponse
 from asyncio import sleep as asleep
 from app.models import Question
-from fastapi.responses import RedirectResponse, HTMLResponse
-from fastapi.security import OAuth2AuthorizationCodeBearer
-from httpx import AsyncClient
-import secrets
-from os import environ
-import jwt
-from datetime import datetime, timedelta, timezone
+# from fastapi.responses import RedirectResponse, HTMLResponse
+# from fastapi.security import OAuth2AuthorizationCodeBearer
+# from httpx import AsyncClient
+# import secrets
+# from urllib.parse import urljoin, urlencode
+# from os import environ
+# import jwt
+# from datetime import datetime, timedelta, timezone
+# import google.oauth2.credentials
+# import google_auth_oauthlib.flow
 
 
 app = FastAPI()
@@ -34,7 +37,7 @@ async def test():
 async def question(q: Question):
     return StreamingResponse(fake_model_answers())
 
-
+'''
 # Конфигурация Google OAuth
 GOOGLE_CLIENT_ID = environ["GOOGLE_CLIENT_ID"]
 GOOGLE_CLIENT_SECRET = environ["GOOGLE_CLIENT_SECRET"]
@@ -53,15 +56,29 @@ async def login_google(request: Request):
     sessions[state] = True
 
     # Формируем URL для авторизации Google
-    auth_url = (
-        f"{GOOGLE_AUTHORIZATION_URL}?"
-        f"client_id={GOOGLE_CLIENT_ID}&"
-        f"response_type=code&"
-        f"scope=email%20profile&"
-        f"redirect_uri={GOOGLE_REDIRECT_URI}&"
-        f"state={state}"
-    )
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "response_type": "code",
+        "scope": f"{urljoin(GOOGLE_USER_INFO_URL, "email")} {urljoin(GOOGLE_USER_INFO_URL, "profile")}",
+        "redirect_ur": GOOGLE_REDIRECT_URI,
+        "state": state
+    }
+    auth_url = f"{GOOGLE_AUTHORIZATION_URL}{urlencode(params)}"
     return RedirectResponse(auth_url)
+
+flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file('client_secret.json',
+    scopes=[f'{GOOGLE_USER_INFO_URL}/email',
+            f'{GOOGLE_USER_INFO_URL}/profile'])
+
+flow.redirect_uri = 'http://localhost:8000/'
+
+authorization_url, state = flow.authorization_url(
+    access_type='offline',
+    include_granted_scopes='true',
+    login_hint='hint@example.com',
+    prompt='consent'
+)
+
 
 @app.get("/auth/google/callback")
 async def auth_google_callback(code: str, state: str, response: Response):
@@ -86,7 +103,7 @@ async def auth_google_callback(code: str, state: str, response: Response):
 
     token_data = token_response.json()
     access_token = token_data["access_token"]
-    id_token = token_data.get("id_token")
+    id_token = token_data["id_token"]
 
     # Получаем данные пользователя
     async with AsyncClient() as client:
@@ -98,9 +115,9 @@ async def auth_google_callback(code: str, state: str, response: Response):
     user_data = user_info.json()
 
     token_data = {
-        "sub": user_data["email"],  # Уникальный идентификатор
+        "sub": user_data["email"],
         "name": user_data.get("name"),
-        "exp": datetime.now(timezone.utc) + timedelta(hours=1),  # Срок действия
+        "exp": datetime.now(timezone.utc) + timedelta(hours=1),
     }
     token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -109,8 +126,8 @@ async def auth_google_callback(code: str, state: str, response: Response):
         key="access_token",
         value=token,
         httponly=True,
-        max_age=3600,  # 1 час
-        secure=True,    # Только HTTPS (в продакшене)
+        max_age=3600,
+        secure=True,
         samesite="lax",
     )
 
@@ -130,3 +147,4 @@ async def get_current_user(access_token: str = Cookie(None)):
         raise HTTPException(status_code=401, detail="Токен истек")
     except jwt.JWTError:
         raise HTTPException(status_code=401, detail="Неверный токен")
+'''
