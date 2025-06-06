@@ -1,9 +1,8 @@
 fastapi[all]
 uvicorn
-alembic
 sqlalchemy
 bcrypt
-psycopg2
+psycopg2-binary
 passlib
 asyncpg
 # pyjwt
