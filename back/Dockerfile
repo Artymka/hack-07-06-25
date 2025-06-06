@@ -8,5 +8,5 @@ COPY ./requirements.txt /workdir/
 RUN pip install -r requirements.txt
 # RUN ls && cd app && ls
 
-ENTRYPOINT [ "uvicorn",  "app.app:app" ]
+ENTRYPOINT [ "uvicorn",  "app.sample:app" ]
 CMD [ "--host", "0.0.0.0", "--port", "8000" ]
