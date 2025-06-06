@@ -1,6 +1,6 @@
 fastapi[all]
 uvicorn
-pyjwt
-google-auth 
-google-auth-oauthlib 
-google-auth-httplib2
+# pyjwt
+# google-auth
+# google-auth-oauthlib
+# google-auth-httplib2

@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, Cookie, Response
 from fastapi.responses import StreamingResponse
 from asyncio import sleep as asleep
-# from app.models import Question
+from app.models import Question
 # from fastapi.responses import RedirectResponse, HTMLResponse
 # from fastapi.security import OAuth2AuthorizationCodeBearer
 # from httpx import AsyncClient
@@ -12,9 +12,18 @@ from asyncio import sleep as asleep
 # from datetime import datetime, timedelta, timezone
 # import google.oauth2.credentials
 # import google_auth_oauthlib.flow
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI()
+ALLOWED_HOSTS = ["*"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_HOSTS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # Для защиты от CSRF
 sessions = {}
 
@@ -34,7 +43,7 @@ async def test():
     return {"message": "test"}
 
 @app.post("/api/quest")
-async def question(text: str):
+async def question(q: Question):
     return StreamingResponse(fake_model_answers())
 
 '''
