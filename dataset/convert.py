@@ -15,6 +15,7 @@ files = [
     "3_bdmo_migration.parquet",
     "4_bdmo_salary.parquet",
     "5_connection.parquet",
+    "8_consumption.parquet",
 ]
 tables = [
     "market_access",
@@ -22,6 +23,7 @@ tables = [
     "bdmo_migration",
     "bdmo_salary",
     "connection",
+    "consumption",
 ]
 
 url = URL.create(
@@ -36,8 +38,11 @@ url = URL.create(
 engine = create_engine(url)
 
 for file, table in zip(files, tables):
-    df = pd.read_parquet(file, engine="fastparquet")
-    df.to_sql(table, engine, if_exists="replace", index=False)
+    try:
+        df = pd.read_parquet(file, engine="fastparquet")
+        df.to_sql(table, engine, if_exists="replace", index=False)
+    except:
+        print(file, "was not processed")
 
 excel_file = "t_dict_municipal_districts.xlsx"
 table = "municipal_districts"
