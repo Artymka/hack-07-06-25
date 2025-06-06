@@ -1,5 +1,11 @@
 fastapi[all]
 uvicorn
+alembic
+sqlalchemy
+bcrypt
+psycopg2
+passlib
+asyncpg
 # pyjwt
 # google-auth
 # google-auth-oauthlib
