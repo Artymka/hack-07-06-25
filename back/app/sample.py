@@ -263,7 +263,6 @@ Chat
 
 @app.post("/api/hist")
 def get_chat_history(
-    session_id: Annotated[int, Body()],
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -271,42 +270,39 @@ def get_chat_history(
     Возвращает историю (список сообщений) для указанной сессии (session_id),
     но только если эта сессия принадлежит текущему пользователю.
     """
-    session_obj = (
+    chat_objs = (
         db.query(ChatSession)
-        .filter(ChatSession.id == session_id, ChatSession.user_id == current_user.id)
-        .first()
+        .filter(ChatSession.user_id == current_user.id)
+        .all()
     )
-    if not session_obj:
+    if not len(chat_objs):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Сессия чата не найдена или не принадлежит текущему пользователю",
         )
     
-    messages = (
-        db.query(Message)
-        .join(ChatSession, Message.session_id == ChatSession.id)
-        .filter(
-            ChatSession.id == session_obj.id,
-            ChatSession.user_id == current_user.id
+    response = []
+    for chat in chat_objs:
+
+        messages = (
+            db.query(Message)
+            .join(ChatSession, Message.session_id == ChatSession.id)
+            .filter(
+                ChatSession.id == chat.id,
+                ChatSession.user_id == current_user.id
+            )
+            .order_by(Message.timestamp)
+            .all()
         )
-        .order_by(Message.timestamp)
-        .all()
-    )
-    # Загружаем сообщения, автоматически по связи сессии
-    response = {
-        "chat": {
-            "title": session_obj.title,
-            "id": session_obj.id,
+
+        part = {
+            "title": chat.title,
+            "id": chat.id,
             "email": current_user.username,
             "messages": [{"role": message.role, "content": message.content} for message in messages]
         }
-    }
+        response.append(part)
 
-    # msgs = session_obj.messages
-    # return HistoryResponse(
-    #     session_id=session_obj.id,
-    #     messages=msgs,
-    # )
     return response
  
  
