@@ -50,9 +50,16 @@ app.add_middleware(
 )
 
 async def fake_model_answers():
-    for i in range(10):
-        await asleep(1)
-        yield b"ipsum dolor sit amet lorem"
+    await asleep(1)
+    yield b"гойда"
+    await asleep(1)
+    yield b"вы чувствуете себя запретым на хакотоне? гойда"
+    await asleep(1)
+    yield b"гойда!!"
+    await asleep(1)
+    yield b"вы пришли чтобы победить?"
+    await asleep(1)
+    yield b"ГОЙДА!!!"
 
 @app.head("/")
 @app.get("/")
