@@ -1,0 +1,46 @@
+@import "@/index.scss";
+.frame {
+  @include flex-layout(start, center, column);
+  border: 1px solid var(--borderItem);
+  border-radius: 16px;
+  width: 100%;
+  min-height: 120px;
+  height: auto;
+  background-color: var(--bgItem);
+  padding: 16px 30px 0 30px;
+  margin-top: auto;
+  font-size: 18px;
+
+  &__input {
+    color: #ffffff;
+    width: 100%;
+    height: auto;
+    overflow: hidden;
+    resize: none;
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  &__tools {
+    @include flex-layout(space-between, start, row);
+    width: 100%;
+    padding-top: 10px;
+
+    &__icons {
+      @include flex-layout(start, start, row);
+      gap: 15px;
+      cursor: pointer;
+    }
+  }
+}
+
+.hidden {
+  width: 0;
+  height: 0;
+  display: none;
+  margin: 0;
+  padding: 0;
+  visibility: hidden;
+}

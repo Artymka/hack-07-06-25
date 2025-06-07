@@ -1,0 +1,31 @@
+@import "@/index.scss";
+.message {
+    width: 90%;
+    @include flex-layout(start, start, column);
+    text-align: left;
+    justify-self: start;
+    font-size: 18px;
+    color: #ffffff;
+    gap: 15px;
+    word-wrap: break-word;
+
+    &__content {
+        font-size: 18px;
+    }
+
+    &__icons {
+        @include flex-layout(start, start, row);
+        gap: 12px;
+
+        &__i {
+            height: 24px;
+            width: auto;
+            cursor: pointer;
+            border-radius: 5px;
+
+            &:hover {
+                background-color: #ffffff20;
+            }
+        }
+    }
+}

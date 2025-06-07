@@ -1,0 +1,19 @@
+<svg width="694" height="800" viewBox="0 0 694 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g filter="url(#filter0_f_134_3516)">
+<path d="M718.692 210.282C751.364 196.612 1034.53 303.582 760.827 617.983C737.854 814.397 732.844 932.945 635.499 921.559C349.3 1214.09 16.6079 757.698 539.033 577.624C519.651 340.689 621.347 198.896 718.692 210.282Z" fill="url(#paint0_radial_134_3516)"/>
+</g>
+<defs>
+<filter id="filter0_f_134_3516" x="0.421143" y="-54.8647" width="1142.55" height="1335.9" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="132" result="effect1_foregroundBlur_134_3516"/>
+</filter>
+<radialGradient id="paint0_radial_134_3516" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(680.439 572.628) rotate(-58.137) scale(482.442 972.22)">
+<stop stop-color="#32C2A8"/>
+<stop offset="0.331731" stop-color="#22BA72"/>
+<stop offset="0.489214" stop-color="#79FA75"/>
+<stop offset="0.610577" stop-color="#54C90F"/>
+<stop offset="1" stop-color="#135647"/>
+</radialGradient>
+</defs>
+</svg>

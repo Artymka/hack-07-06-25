@@ -1,0 +1,28 @@
+@import "@/index.scss";
+.content {
+  background-color: var(--bgItem);
+  width: 100%;
+}
+
+.trigger {
+  background-color: var(--bgItem);
+  width: 100%;
+
+  &:hover {
+    border: none;
+  }
+
+  .accordion {
+    gap: 15px;
+    @include flex-layout(start, center, column);
+    width: 100%;
+  }
+
+  .value {
+    width: 100%;
+  }
+}
+.logo {
+  padding: 10px 40px;
+  font-size: 36px;
+}

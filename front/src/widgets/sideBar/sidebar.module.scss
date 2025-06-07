@@ -1,0 +1,187 @@
+@import "@/index.scss";
+.sidebar {
+  @include flex-layout(start, center, column);
+  gap: 15px;
+  height: 100vh;
+  background-color: var(--bg);
+  border-right: 1px solid var(--borderItem);
+  z-index: 2;
+
+  &__header,
+  &__footer {
+    margin-top: 35px;
+    @include flex-layout(start, center, row);
+    gap: 5px;
+    width: 100%;
+
+    &__icons {
+      @include flex-layout(start, start, row);
+      gap: 15px;
+      padding-left: 20px;
+      padding-top: 10px;
+
+      &__i {
+        height: 25px;
+        width: 25px;
+        cursor: pointer;
+      }
+    }
+
+    &__logo {
+      font-size: 18px;
+      margin-left: auto;
+      color: white;
+      margin-right: 10px;
+
+      &__i {
+        width: 40px;
+        height: auto;
+        margin-left: auto;
+      }
+    }
+  }
+
+  &__search {
+    justify-self: start;
+    background-color: var(--bgItem);
+    border-radius: 8px;
+    border: 1px solid var(--borderItem);
+    color: #ffffff;
+    width: 100%;
+  }
+
+  &__history {
+    position: relative;
+    width: 95%;
+    height: auto;
+    @include flex-layout(start, start, column);
+    gap: 16px;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar-thumb {
+      border-radius: 5px;
+    }
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    &__date {
+      font-size: 18px;
+
+      color: #ffffff60;
+    }
+
+    &__chat {
+      @include flex-layout(space-between, center, row);
+      width: 100%;
+      color: #ffffff;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 10px;
+      &:hover {
+        background-color: #0c2b37;
+      }
+
+      &__delete {
+        height: 25px;
+        width: auto;
+        margin-right: 5px;
+      }
+    }
+  }
+
+  &__footer {
+    margin-top: auto;
+    padding-bottom: 35px;
+  }
+
+  @media (max-width: 1024px) {
+    &__history {
+      width: 90%;
+    }
+  }
+}
+
+.collapsed {
+  @include flex-layout(space-between, space-between, row);
+  position: absolute;
+  top: 5%;
+  left: 0;
+  margin: 0 5%;
+  width: 90%;
+  gap: 15px;
+  z-index: 1;
+
+  &__logo {
+    font-size: 18px;
+    color: white;
+  }
+
+  &__icons {
+    @include flex-layout(start, center, row);
+    gap: 15px;
+    padding-top: 20px;
+    img {
+      width: 25px;
+      height: auto;
+      cursor: pointer;
+    }
+  }
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  @include flex-layout(center, center);
+  z-index: 1000;
+}
+
+.modalContent {
+  color: #ffffff;
+  background-color: var(--bgItem);
+  padding: 20px;
+  border-radius: 16px;
+  width: 400px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  @include flex-layout(start, start, column);
+  gap: 10px;
+
+  @media (max-width: 480px) {
+    width: 80%;
+  }
+}
+
+.modalTitle {
+  margin-bottom: 15px;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid var(--borderItem);
+  border-radius: 8px;
+  margin-bottom: 15px;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.closeButton {
+  background-color: var(--borderItem);
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--active);
+  }
+}

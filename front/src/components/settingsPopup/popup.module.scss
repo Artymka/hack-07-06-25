@@ -1,0 +1,123 @@
+@import "@/index.scss";
+.content {
+  @include flex-layout(center, center, column);
+  background-color: var(--bgItem);
+  gap: 10px;
+  width: 100%;
+  font-size: 18px;
+
+  &__h {
+    width: 90%;
+    margin: 0 5%;
+    padding: 20px 0;
+    color: white;
+  }
+
+  &__panel {
+    margin: 0 5%;
+    width: 90%;
+    border-radius: 8px;
+    @include flex-layout(start, center, row);
+    background-color: inherit;
+    margin-bottom: 30px;
+    font-size: inherit;
+
+    &__i {
+      background-color: inherit;
+      width: 33%;
+      padding: 10px;
+      text-align: center;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    &__panel {
+      padding: 3px;
+      width: 100%;
+      margin: 0;
+      font-size: 14px;
+
+      &__i {
+        padding: 5px;
+      }
+    }
+  }
+}
+
+.settings {
+  @include flex-layout(start, start, column);
+  width: 94%;
+  margin: 0 3%;
+  gap: 10px;
+
+  &__line {
+    position: relative;
+    width: 100%;
+    font-size: 18px;
+    @include flex-layout(space-between, center, row);
+    padding: 15px;
+    color: white;
+    border-bottom: 2px solid var(--borderItem);
+
+    p {
+      color: var(--borderItem);
+      font-size: 12px;
+      padding: 5px 0;
+      width: 80%;
+    }
+
+    div {
+      width: 64%;
+    }
+    &__input {
+      text-align: end;
+      color: var(--borderItem);
+      padding: 5px 10px;
+      overflow: hidden;
+      width: 33%;
+
+      &:focus {
+        outline: none;
+      }
+    }
+
+    &__button {
+      border-radius: 8px;
+
+      &_active,
+      &_dizactive {
+        color: white;
+        height: 45px;
+        aspect-ratio: 2/1;
+        text-align: center;
+        background-color: var(--borderItem);
+      }
+
+      &_dizactive {
+        background-color: var(--bg);
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    &__line {
+      padding: 12px 5px;
+
+      font-size: 14px;
+      &__button {
+        &_active,
+        &_dizactive {
+          font-size: 14px;
+          height: 35px;
+          padding: 5px;
+        }
+      }
+
+      &__input {
+        width: 50%;
+      }
+    }
+  }
+}
