@@ -9,8 +9,8 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, relationship, sessionmaker
 
-from db import *
-from models import *
+from app.db import *
+from app.models import *
 from asyncio import sleep as asleep
 
 # -----------------------------
