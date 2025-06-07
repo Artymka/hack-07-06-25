@@ -5,12 +5,6 @@ sys.path.append(str(Path(__file__).parent.parent))
 from main import *
 from agents.RAG import *
 
-wikipedia_retriever = WikipediaRetriever(
-        lang="ru", 
-        top_k_results=4
-    )
-
-
 def rag_agent(state: State):
     
     query = state['messages'][-1]['content']

@@ -1,5 +1,8 @@
 import sys
 from pathlib import Path 
+
+from app.config import settings
+
 sys.path.append(str(Path(__file__).parent.parent))
 
 from main import *
@@ -24,7 +27,8 @@ from langchain.agents.agent_toolkits import SQLDatabaseToolkit
 from langchain.utilities import SQLDatabase
 
 db = SQLDatabase.from_uri(
-    database_uri="postgresql://mireahack:root@postgres:5432/mireahack",
+    database_uri=settings.get_db_url(),
+    # database_uri="postgresql://mireahack:root@postgres:5432/mireahack",
     schema="public"
 )
 

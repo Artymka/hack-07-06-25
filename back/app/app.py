@@ -13,6 +13,8 @@ from app.db import *
 from app.models import *
 from asyncio import sleep as asleep
 
+from ml.graph import quest_model, state, startup
+
 # -----------------------------
 # 5) Зависимости
 # -----------------------------
@@ -61,6 +63,14 @@ async def fake_model_answers():
     await asleep(1)
     yield "ГОЙДА!!!"
 
+graph = None
+
+@app.on_event("startup")
+async def startup_event():
+    global graph
+    graph = startup()
+
+
 @app.head("/")
 @app.get("/")
 async def index():
@@ -72,7 +82,7 @@ async def test():
 
 @app.post("/api/quest")
 async def question(q: Question):
-    return StreamingResponse(fake_model_answers())
+    return quest_model(q.text, state, graph)
 
 
 @app.post("/api/register", status_code=status.HTTP_201_CREATED)

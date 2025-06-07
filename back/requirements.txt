@@ -5,7 +5,16 @@ bcrypt
 psycopg2-binary
 passlib
 asyncpg
-# pyjwt
-# google-auth
-# google-auth-oauthlib
-# google-auth-httplib2
+langchain-gigachat
+sqlalchemy
+langchain-community
+langchain-core
+langgraph
+langchain
+requests
+beautifulsoup4
+pydantic
+jinja2
+typing-extensions
+ipython
+langchain_openai
