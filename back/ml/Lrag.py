@@ -2,8 +2,14 @@ import sys
 from pathlib import Path 
 sys.path.append(str(Path(__file__).parent.parent))  
 
-from ml.main import *
-from agents.Lrag import *
+from main import *
+from agents.RAG import *
+
+wikipedia_retriever = WikipediaRetriever(
+        lang="ru", 
+        top_k_results=4
+    )
+
 
 def rag_agent(state: State):
     
@@ -14,8 +20,7 @@ def rag_agent(state: State):
     prompt = f"""
     Ты — ассистент по вопросам муниципалитетов России и статистики. 
     Ответь на вопрос пользователя, основываясь только на контексте ниже.
-    Ответь только по делу, в ответ включи самое важное. Не советуй пользователю провести анализ.
-
+    Если исходя из на вопрос ответить невозможно, ответь "данные отсутствуют"
     
     Контекст: {context}
 

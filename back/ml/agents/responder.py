@@ -2,7 +2,7 @@ import sys
 from pathlib import Path 
 sys.path.append(str(Path(__file__).parent.parent))  # Добавляет /workspace/ML в пути
 
-from main import *
+from ml.main import *
 
 def responder(state: State):
     query = state["messages"][-1]["content"]
