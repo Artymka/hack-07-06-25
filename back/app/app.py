@@ -81,10 +81,25 @@ async def test_model_answers():
 
         В заключение следует подчеркнуть, что для проведения полноценного статистического исследования и подтверждения наличия значимой корреляционной связи необходимо привлечение дополнительных показателей и использование специальных методов математической статистики"""
     
-    elif q.text.lower().startswith("request 2..."):
-        yield "anwer 2"
+    elif q.text.lower().startswith("в каких муниципалитетах самые крупные траты на маркетплейсах"):
+        yield """
+        Муниципалитеты Ростовской области, где зафиксированы наиболее высокие средние расходы граждан на маркетплейсы (рассчитанные на одного жителя), представлены следующим списком в порядке убывания:
 
-async def real_model_anwers(text):
+        1. Роговское – 8 418 рублей  
+        2. Первомайское – 8 327,13 рубля  
+        3. Анадырь – 8 157,54 рубля  
+        4. Внуковское – 8 139,13 рубля  
+        5. Печенгский – 8 109 рублей  
+        6. Вороновское – 8 091,67 рубля  
+        7. Ловозерский – 8 088,17 рубля  
+        8. Михайлово-Ярцевское – 7 784,92 рубля  
+        9. Полярные Зори – 7 740,08 рубля  
+        10. Кировск – 7 663,88 рубля 
+
+        Приведённые выше цифры отражают среднюю сумму расходов жителей каждого муниципалитета на покупки через онлайн-платформы за указанный временной интервал с января 2023-го по декабрь 2024 года включительно.
+        """
+
+async def real_model_answers(text):
     yield text
 
 # graph = None
@@ -106,10 +121,10 @@ async def test():
 
 @app.post("/api/quest")
 async def question(q: Question):
-    return StreamingResponse(test_model_anwers())
+    return StreamingResponse(test_model_answers())
 
-    answer = quest_model(q.text, state, graph)
-    return StreamingResponse(real_model_answers(quest_model(q.text, state, graph)))
+    # answer = quest_model(q.text, state, graph)
+    # return StreamingResponse(real_model_answers(quest_model(q.text, state, graph)))
 
 
 @app.post("/api/register", status_code=status.HTTP_201_CREATED)
