@@ -52,7 +52,7 @@ app.add_middleware(
 async def fake_model_answers():
     for i in range(10):
         await asleep(1)
-        yield b"lorem ipsum dolor sit amet "
+        yield b"ipsum dolor sit amet lorem"
 
 @app.head("/")
 @app.get("/")
