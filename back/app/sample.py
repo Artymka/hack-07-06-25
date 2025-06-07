@@ -1,6 +1,7 @@
 # main.py
 from datetime import datetime
 from typing import List, Optional
+from fastapi.responses import StreamingResponse
  
 from fastapi import Depends, FastAPI, HTTPException, status, Body
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,6 +14,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, relationship, sessionmaker
 from app.config import settings
 from typing import Annotated
+from asyncio import sleep as asleep
  
 DATABASE_URL = settings.get_db_url()
  
@@ -68,6 +70,10 @@ Base.metadata.create_all(bind=engine)
 # -----------------------------
 # 3) Схемы (Pydantic-модели)
 # -----------------------------
+class Question(BaseModel):
+    text: str
+
+    
 class RegisterRequest(BaseModel):
     username: str
     password: str
@@ -152,7 +158,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
- 
+
+async def fake_model_answers():
+    for i in range(10):
+        await asleep(1)
+        yield b"lorem ipsum dolor sit amet "
+
+@app.head("/")
+@app.get("/")
+async def index():
+    return {"message": "Hello, world!"}
+
+@app.get("/test")
+async def test():
+    return {"message": "test"}
+
+@app.post("/api/quest")
+async def question(q: Question):
+    return StreamingResponse(fake_model_answers())
+
+
 @app.post("/api/register", status_code=status.HTTP_201_CREATED)
 def register_user(request: RegisterRequest, db: Session = Depends(get_db)):
     """
