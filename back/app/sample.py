@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import List, Optional
  
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from passlib.context import CryptContext
@@ -12,6 +12,7 @@ from sqlalchemy import (Column, DateTime, ForeignKey, Integer, String,
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, relationship, sessionmaker
 from app.config import settings
+from typing import Annotated
  
 DATABASE_URL = settings.get_db_url()
  
@@ -198,6 +199,7 @@ def login(credentials: HTTPBasicCredentials = Depends(security), db: Session = D
  
 @app.post("/api/hist-create")
 def create_chat_session(
+    title: Annotated[str, Body()],
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -205,7 +207,7 @@ def create_chat_session(
     Создаёт новую сессию чата для текущего (аутентифицированного) пользователя.
     Возвращает ID этой сессии и время создания.
     """
-    new_session = ChatSession(user_id=current_user.id)
+    new_session = ChatSession(user_id=current_user.id, title=title)
     db.add(new_session)
     db.commit()
     db.refresh(new_session)
@@ -227,9 +229,9 @@ Chat
     user_email
 """
 
-@app.get("/api/hist")
+@app.post("/api/hist")
 def get_chat_history(
-    session_id: int,
+    session_id: Annotated[int, Body()],
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
