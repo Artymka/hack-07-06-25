@@ -51,15 +51,15 @@ app.add_middleware(
 
 async def fake_model_answers():
     await asleep(1)
-    yield b"гойда"
+    yield "гойда"
     await asleep(1)
-    yield b"вы чувствуете себя запретым на хакотоне? гойда"
+    yield "вы чувствуете себя запретым на хакотоне? гойда"
     await asleep(1)
-    yield b"гойда!!"
+    yield "гойда!!"
     await asleep(1)
-    yield b"вы пришли чтобы победить?"
+    yield "вы пришли чтобы победить?"
     await asleep(1)
-    yield b"ГОЙДА!!!"
+    yield "ГОЙДА!!!"
 
 @app.head("/")
 @app.get("/")
