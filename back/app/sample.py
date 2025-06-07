@@ -73,7 +73,7 @@ Base.metadata.create_all(bind=engine)
 class Question(BaseModel):
     text: str
 
-    
+
 class RegisterRequest(BaseModel):
     username: str
     password: str
@@ -206,12 +206,16 @@ def login(credentials: HTTPBasicCredentials = Depends(security), db: Session = D
     Проверяет переданные HTTP Basic креденшелы.
     При успехе возвращает подтверждение.
     """
+    print("--- Credentials ---")
     print(credentials.username)
     print(credentials.password)
     
     user = db.query(User).filter(User.username == credentials.username).first()
+
+    print("--- DB ---")
     print(user.username)
     print(user.hashed_password)
+    print("succes:", verify_password(credentials.password, user.hashed_password))
 
     if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(
