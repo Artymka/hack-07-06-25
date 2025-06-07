@@ -70,6 +70,9 @@ Base.metadata.create_all(bind=engine)
 # -----------------------------
 # 3) Схемы (Pydantic-модели)
 # -----------------------------
+class HistCreate(BaseModel):
+    title: str
+
 class Question(BaseModel):
     text: str
 
@@ -228,7 +231,7 @@ def login(credentials: HTTPBasicCredentials = Depends(security), db: Session = D
  
 @app.post("/api/hist-create")
 def create_chat_session(
-    title: Annotated[str, Body()],
+    hc: Annotated[HistCreate, Body()],
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -236,7 +239,7 @@ def create_chat_session(
     Создаёт новую сессию чата для текущего (аутентифицированного) пользователя.
     Возвращает ID этой сессии и время создания.
     """
-    new_session = ChatSession(user_id=current_user.id, title=title)
+    new_session = ChatSession(user_id=current_user.id, title=hc.title)
     db.add(new_session)
     db.commit()
     db.refresh(new_session)
