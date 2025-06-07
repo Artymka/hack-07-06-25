@@ -1,18 +1,263 @@
+from datetime import datetime
+from typing import List, Optional
+from fastapi.responses import StreamingResponse
+ 
+from fastapi import Depends, FastAPI, HTTPException, status, Body
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from passlib.context import CryptContext
+from pydantic import BaseModel
+from sqlalchemy.orm import Session, relationship, sessionmaker
+
+from db import *
+from models import *
+from asyncio import sleep as asleep
+
+# -----------------------------
+# 5) Зависимости
+# -----------------------------
+
+ 
+ 
+def get_current_user(
+    credentials: HTTPBasicCredentials = Depends(security),
+    db: Session = Depends(get_db),
+) -> User:
+    """
+    HTTP Basic авторизация: отвечает User из базы, если имя/пароль корректны.
+    Иначе бросает HTTPException(401).
+    """
+    user = db.query(User).filter(User.username == credentials.username).first()
+    if not user or not verify_password(credentials.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неверное имя пользователя или пароль",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return user
+ 
+ 
+# -----------------------------
+# 6) Приложение FastAPI
+# -----------------------------
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+async def fake_model_answers():
+    for i in range(10):
+        await asleep(1)
+        yield b"lorem ipsum dolor sit amet "
+
+@app.head("/")
+@app.get("/")
+async def index():
+    return {"message": "Hello, world!"}
+
+@app.get("/test")
+async def test():
+    return {"message": "test"}
+
+@app.post("/api/quest")
+async def question(q: Question):
+    return StreamingResponse(fake_model_answers())
+
+
+@app.post("/api/register", status_code=status.HTTP_201_CREATED)
+def register_user(request: RegisterRequest, db: Session = Depends(get_db)):
+    """
+    Регистрация нового пользователя.
+    Если username уже занят, возвращаем ошибку 400.
+    """
+    existing = db.query(User).filter(User.username == request.username).first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Пользователь с таким именем уже существует",
+        )
+    user = User(
+        username=request.username,
+        hashed_password=get_password_hash(request.password),
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return {"detail": "Пользователь успешно зарегистрирован"}
+ 
+ 
+@app.post("/api/login")
+def login(credentials: HTTPBasicCredentials = Depends(security), db: Session = Depends(get_db)):
+    """
+    Проверяет переданные HTTP Basic креденшелы.
+    При успехе возвращает подтверждение.
+    """
+    print("--- Credentials ---")
+    print(credentials.username)
+    print(credentials.password)
+    
+    user = db.query(User).filter(User.username == credentials.username).first()
+
+    print("--- DB ---")
+    print(user.username)
+    print(user.hashed_password)
+    print("succes:", verify_password(credentials.password, user.hashed_password))
+
+    if not user or not verify_password(credentials.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неверное имя пользователя или пароль",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return {"detail": f"Пользователь {user.username} успешно аутентифицирован"}
+ 
+ 
+@app.post("/api/hist-create")
+def create_chat_session(
+    hc: Annotated[HistCreate, Body()],
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Создаёт новую сессию чата для текущего (аутентифицированного) пользователя.
+    Возвращает ID этой сессии и время создания.
+    """
+    new_session = ChatSession(user_id=current_user.id, title=hc.title)
+    db.add(new_session)
+    db.commit()
+    db.refresh(new_session)
+
+    return {
+        "chat": {
+            "id": new_session.id,
+        }
+    }
+    # return SessionCreateResponse(
+    #     session_id=new_session.id,
+    # )
+ 
+"""
+Chat
+    title
+    messages
+    id
+    user_email
+"""
+
+@app.post("/api/hist")
+def get_chat_history(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Возвращает историю (список сообщений) для указанной сессии (session_id),
+    но только если эта сессия принадлежит текущему пользователю.
+    """
+    chat_objs = (
+        db.query(ChatSession)
+        .filter(ChatSession.user_id == current_user.id)
+        .all()
+    )
+    if not len(chat_objs):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Сессия чата не найдена или не принадлежит текущему пользователю",
+        )
+    
+    response = []
+    for chat in chat_objs:
+
+        messages = (
+            db.query(Message)
+            .join(ChatSession, Message.session_id == ChatSession.id)
+            .filter(
+                ChatSession.id == chat.id,
+                ChatSession.user_id == current_user.id
+            )
+            .order_by(Message.timestamp)
+            .all()
+        )
+
+        part = {
+            "title": chat.title,
+            "id": chat.id,
+            "email": current_user.username,
+            "messages": [{"role": message.role, "content": message.content} for message in messages]
+        }
+        response.append(part)
+
+    return response
+ 
+ 
+# -----------------------------
+# (Дополнительно) Эндпоинт для добавления сообщения в сессию
+# -----------------------------
+class MessageCreateRequest(BaseModel):
+    role: str  # "user" или "bot"
+    content: str
+ 
+ 
+@app.post("/api/hist/{session_id}/message")
+def add_message_to_session(
+    session_id: int,
+    req: MessageCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Добавляет новое сообщение в указанную сессию (session_id).
+    Проверяет, что сессия принадлежит текущему пользователю.
+    """
+    session_obj = (
+        db.query(ChatSession)
+        .filter(ChatSession.id == session_id, ChatSession.user_id == current_user.id)
+        .first()
+    )
+    if not session_obj:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Сессия чата не найдена или не принадлежит текущему пользователю",
+        )
+    # Создаём сообщение
+    msg = Message(
+        session_id=session_obj.id,
+        role=req.role,
+        content=req.content,
+        timestamp=datetime.utcnow(),
+    )
+    db.add(msg)
+    db.commit()
+    db.refresh(msg)
+    return msg
+
+
+'''
 from fastapi import FastAPI, Request, Depends, HTTPException, Cookie, Response
 from fastapi.responses import StreamingResponse
 from asyncio import sleep as asleep
 from app.models import Question
-# from fastapi.responses import RedirectResponse, HTMLResponse
-# from fastapi.security import OAuth2AuthorizationCodeBearer
-# from httpx import AsyncClient
-# import secrets
-# from urllib.parse import urljoin, urlencode
-# from os import environ
-# import jwt
-# from datetime import datetime, timedelta, timezone
-# import google.oauth2.credentials
-# import google_auth_oauthlib.flow
+from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.security import OAuth2AuthorizationCodeBearer
+from httpx import AsyncClient
+import secrets
+from urllib.parse import urljoin, urlencode
+from os import environ
+import jwt
+from datetime import datetime, timedelta, timezone
+import google.oauth2.credentials
+import google_auth_oauthlib.flow
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Annotated
+from fastapi import Body
+from app.db import *
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session, relationship, sessionmaker
+
+from app.models import *
 
 
 app = FastAPI()
@@ -46,114 +291,135 @@ async def test():
 async def question(q: Question):
     return StreamingResponse(fake_model_answers())
 
-'''
-# Конфигурация Google OAuth
-GOOGLE_CLIENT_ID = environ["GOOGLE_CLIENT_ID"]
-GOOGLE_CLIENT_SECRET = environ["GOOGLE_CLIENT_SECRET"]
-GOOGLE_REDIRECT_URI = environ["GOOGLE_REDIRECT_URI"]
-GOOGLE_AUTHORIZATION_URL = environ["GOOGLE_AUTHORIZATION_URL"]
-GOOGLE_TOKEN_URL = environ["GOOGLE_TOKEN_URL"]
-GOOGLE_USER_INFO_URL = environ["GOOGLE_USER_INFO_URL"]
-SECRET_KEY = environ["SECRET_KEY"]
-ALGORITHM = "HS256"
-
-@app.get("/login/google")
-async def login_google(request: Request):
-    """Редиректит на страницу google для выбора пользователя."""
-    # Генерируем случайный state (защита от CSRF)
-    state = secrets.token_urlsafe(16)
-    sessions[state] = True
-
-    # Формируем URL для авторизации Google
-    params = {
-        "client_id": GOOGLE_CLIENT_ID,
-        "response_type": "code",
-        "scope": f"{urljoin(GOOGLE_USER_INFO_URL, "email")} {urljoin(GOOGLE_USER_INFO_URL, "profile")}",
-        "redirect_ur": GOOGLE_REDIRECT_URI,
-        "state": state
-    }
-    auth_url = f"{GOOGLE_AUTHORIZATION_URL}{urlencode(params)}"
-    return RedirectResponse(auth_url)
-
-flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file('client_secret.json',
-    scopes=[f'{GOOGLE_USER_INFO_URL}/email',
-            f'{GOOGLE_USER_INFO_URL}/profile'])
-
-flow.redirect_uri = 'http://localhost:8000/'
-
-authorization_url, state = flow.authorization_url(
-    access_type='offline',
-    include_granted_scopes='true',
-    login_hint='hint@example.com',
-    prompt='consent'
-)
 
 
-@app.get("/auth/google/callback")
-async def auth_google_callback(code: str, state: str, response: Response):
-    """Получает данные пользователя по коду, который вернул google, устанавливает jwt."""
-    # Проверяем state (CSRF-защита)
-    if state not in sessions:
-        raise HTTPException(status_code=400, detail="Invalid state")
-    del sessions[state]
-
-    # Обмениваем код на токен
-    async with AsyncClient() as client:
-        token_response = await client.post(
-            GOOGLE_TOKEN_URL,
-            data={
-                "code": code,
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
-                "redirect_uri": GOOGLE_REDIRECT_URI,
-                "grant_type": "authorization_code",
-            },
+@app.post("/api/register")
+def register_user(request: RegisterRequest, db: Session = Depends(get_db)):
+    """
+    Регистрация нового пользователя.
+    Если username уже занят, возвращаем ошибку 400.
+    """
+    existing = db.query(User).filter(User.username == request.username).first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Пользователь с таким именем уже существует",
         )
-
-    token_data = token_response.json()
-    access_token = token_data["access_token"]
-    id_token = token_data["id_token"]
-
-    # Получаем данные пользователя
-    async with AsyncClient() as client:
-        user_info = await client.get(
-            GOOGLE_USER_INFO_URL,
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-
-    user_data = user_info.json()
-
-    token_data = {
-        "sub": user_data["email"],
-        "name": user_data.get("name"),
-        "exp": datetime.now(timezone.utc) + timedelta(hours=1),
-    }
-    token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
-
-    # Устанавливаем токен в куки (HTTP-only для защиты от XSS)
-    response.set_cookie(
-        key="access_token",
-        value=token,
-        httponly=True,
-        max_age=3600,
-        secure=True,
-        samesite="lax",
+    user = User(
+        username=request.username,
+        hashed_password=get_password_hash(request.password),
     )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return {"detail": "Пользователь успешно зарегистрирован"}
+ 
+ 
+@app.post("/api/login", response_model=LoginResponse)
+# def login(credentials: HTTPBasicCredentials = Depends(security), db: Session = Depends(get_db)):
+def login(credentials: UserRequest = Depends(security), db: Session = Depends(get_db)):
+    """
+    Проверяет переданные HTTP Basic креденшелы.
+    При успехе возвращает подтверждение.
+    """
+    user = db.query(User).filter(User.email == credentials.email).first()
+    if not user or not verify_password(credentials.password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неверное имя пользователя или пароль",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials
+ 
+ 
+@app.post("/api/hist-create", response_model=SessionCreateResponse)
+def create_chat_session(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)]
+):
+    """
+    Создаёт новую сессию чата для текущего (аутентифицированного) пользователя.
+    Возвращает ID этой сессии и время создания.
+    """
+    new_chat = Chat(id=current_user.id)
+    db.add(new_chat)
+    db.commit()
+    db.refresh(new_chat)
 
     return {
-        "email": user_data["email"],
-        "name": user_data["name"],
-        "picture": user_data["picture"],
+        "chat": {
+            "id": new_chat.id
+        }
     }
+ 
+ 
+@app.post("/api/hist", response_model=HistoryResponse)
+def get_chat_history(
+    email: Annotated[str, Body()],
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)]
+):
+    """
+    Возвращает историю (список сообщений) для указанной сессии (session_id),
+    но только если эта сессия принадлежит текущему пользователю.
+    """
+    session_obj = (
+        db.query(Chat)
+        .filter(Chat.id == session_id, ChatSession.user_id == current_user.id)
+        .first()
+    )
+    if not session_obj:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Сессия чата не найдена или не принадлежит текущему пользователю",
+        )
+    # Загружаем сообщения, автоматически по связи сессии
+    msgs = session_obj.messages
+    return HistoryResponse(
+        session_id=session_obj.id,
+        messages=msgs,
+    )
+ 
+ 
+# -----------------------------
+# (Дополнительно) Эндпоинт для добавления сообщения в сессию
+# -----------------------------
+class MessageCreateRequest(BaseModel):
+    role: str  # "user" или "bot"
+    content: str
+ 
+ 
+@app.post("/api/hist/{session_id}/message", response_model=MessageRead)
+def add_message_to_session(
+    session_id: int,
+    req: MessageCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Добавляет новое сообщение в указанную сессию (session_id).
+    Проверяет, что сессия принадлежит текущему пользователю.
+    """
+    session_obj = (
+        db.query(ChatSession)
+        .filter(ChatSession.id == session_id, ChatSession.user_id == current_user.id)
+        .first()
+    )
+    if not session_obj:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Сессия чата не найдена или не принадлежит текущему пользователю",
+        )
+    # Создаём сообщение
+    msg = Message(
+        session_id=session_obj.id,
+        role=req.role,
+        content=req.content,
+        timestamp=datetime.utcnow(),
+    )
+    db.add(msg)
+    db.commit()
+    db.refresh(msg)
+    return msg
 
-async def get_current_user(access_token: str = Cookie(None)):
-    if not access_token:
-        raise HTTPException(status_code=401, detail="Не авторизован")
-    try:
-        payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Токен истек")
-    except jwt.JWTError:
-        raise HTTPException(status_code=401, detail="Неверный токен")
 '''

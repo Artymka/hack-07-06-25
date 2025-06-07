@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session, relationship, sessionmaker
 from app.config import settings
 from typing import Annotated
 from asyncio import sleep as asleep
- 
+
 DATABASE_URL = settings.get_db_url()
  
 # -----------------------------
@@ -120,7 +120,7 @@ def get_password_hash(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
  
- 
+
 # -----------------------------
 # 5) Зависимости
 # -----------------------------
