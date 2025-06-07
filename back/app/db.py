@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session, relationship, sessionmaker
 from app.config import settings
 from typing import Annotated
 from datetime import datetime
-
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from passlib.context import CryptContext
 
 
 DATABASE_URL = settings.get_db_url()
