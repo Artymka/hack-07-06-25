@@ -1,9 +1,9 @@
 # main.py
- 
 from datetime import datetime
 from typing import List, Optional
  
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from passlib.context import CryptContext
 from pydantic import BaseModel
@@ -144,7 +144,13 @@ def get_current_user(
 # 6) Приложение FastAPI
 # -----------------------------
 app = FastAPI()
- 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
  
 @app.post("/api/register", status_code=status.HTTP_201_CREATED)
 def register_user(request: RegisterRequest, db: Session = Depends(get_db)):
@@ -278,7 +284,7 @@ class MessageCreateRequest(BaseModel):
     content: str
  
  
-@app.post("/api/hist/{session_id}/message", response_model=MessageRead)
+@app.post("/api/hist/{session_id}/message")
 def add_message_to_session(
     session_id: int,
     req: MessageCreateRequest,
